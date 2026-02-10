@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   // Carousel
   carouselContainer: {
     width: width,
-    height: 380,
+    height: 400,
     position: "relative",
     marginBottom: 20,
   },

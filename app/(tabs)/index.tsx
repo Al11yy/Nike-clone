@@ -70,13 +70,13 @@ const STORIES = [
     id: 1,
     title: "How to Choose the Best Nike Soccer Cleats",
     category: "Buying Guide",
-    image: "https://images.unsplash.com/photo-1511886929837-354d827aae26",
+    image: "https://images.unsplash.com/photo-1633306603064-582250e68a1a?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
     id: 2,
     title: "The origins of the Dunk",
     category: "From the archives",
-    image: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a",
+    image: "https://images.unsplash.com/photo-1623684225794-a8f1f5037f5c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
 ];
 
@@ -87,18 +87,14 @@ const Header = () => (
   <View style={styles.header}>
     <View style={styles.logoToggle}>
       {/* Simulasi Logo Nike & Jordan pake Text/Icon krn gapunya SVG */}
-      <Ionicons
-        name="flash"
-        size={16}
-        color="black"
-        style={{ marginRight: 10 }}
+      <Image
+        source={{ uri: "https://img.icons8.com/ios-filled/50/000000/nike.png" }}
+        style={{ width: 26, height: 26, marginRight: 10, tintColor: "black", resizeMode: "contain" }}
       />
       <View style={{ width: 1, height: 12, backgroundColor: "#ddd" }} />
-      <Ionicons
-        name="basketball"
-        size={16}
-        color="#aaa"
-        style={{ marginLeft: 10 }}
+      <Image
+        source={{ uri: "https://img.icons8.com/ios-filled/50/000000/air-jordan.png" }}
+        style={{ width: 26, height: 26, marginLeft: 10, tintColor: "#aaa", resizeMode: "contain" }}
       />
     </View>
     <TouchableOpacity>
@@ -315,7 +311,7 @@ export default function NikeExactClone() {
           {/* Main Story (Large) */}
           <View style={styles.mainStoryContainer}>
             <Image
-              source={require("../../assets/images/nikeshoes.png")}
+              source={require("../../assets/images/nikeshoesn.png")}
               style={styles.mainStoryImage}
             />
             <View style={{ marginTop: 15 }}>
@@ -352,11 +348,9 @@ export default function NikeExactClone() {
 
             {/* Bottom Logo */}
             <View style={{ alignItems: "center", marginTop: 40 }}>
-              <Ionicons
-                name="checkmark-sharp"
-                size={24}
-                color="white"
-                style={{ transform: [{ skewX: "-20deg" }] }}
+              <Image
+                source={{ uri: "https://img.icons8.com/ios-filled/100/ffffff/nike.png" }}
+                style={{ width: 60, height: 30, resizeMode: "contain" }}
               />
               <Text
                 style={{
