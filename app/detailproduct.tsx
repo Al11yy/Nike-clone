@@ -1,8 +1,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
+  Easing,
   Image,
   ScrollView,
   StatusBar,
@@ -11,6 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useCart } from "@/context/cart-context";
+import { useFavorites } from "@/context/favorites-context";
 
 const { width } = Dimensions.get("window");
 
@@ -30,9 +34,15 @@ const SIZES = [
 
 export default function ProductDetailScreen() {
   const router = useRouter();
+  const { addToCart } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const { product } = useLocalSearchParams<{ product?: string }>();
   const [selectedSize, setSelectedSize] = useState("EU 45.5");
   const [activeSlide, setActiveSlide] = useState(0);
+  const [showAddedToast, setShowAddedToast] = useState(false);
+  const addBtnScale = useRef(new Animated.Value(1)).current;
+  const addedToastOpacity = useRef(new Animated.Value(0)).current;
+  const addedToastTranslateY = useRef(new Animated.Value(14)).current;
 
   const parsedProduct = useMemo(() => {
     if (!product) return null;
@@ -59,8 +69,87 @@ export default function ProductDetailScreen() {
       ? `$${parsedProduct.price.toFixed(2)}`
       : typeof parsedProduct?.price === "string"
         ? parsedProduct.price
-        : "IDR 1,939,000";
+        : "$139.00";
   const productImage = parsedProduct?.image ?? fallbackImage;
+  const favorited = isFavorite(parsedProduct?.id, productTitle);
+
+  const handleAddToBag = () => {
+    addToCart(
+      {
+        id: parsedProduct?.id,
+        title: productTitle,
+        category: productCategory,
+        description: productDescription,
+        price: productPrice,
+        image: productImage,
+        size: selectedSize,
+      },
+      1,
+    );
+
+    Animated.sequence([
+      Animated.timing(addBtnScale, {
+        toValue: 0.97,
+        duration: 160,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(addBtnScale, {
+        toValue: 1,
+        duration: 240,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setShowAddedToast(true);
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(addedToastOpacity, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(addedToastTranslateY, {
+          toValue: 0,
+          duration: 320,
+          easing: Easing.out(Easing.exp),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.delay(650),
+      Animated.parallel([
+        Animated.timing(addedToastOpacity, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(addedToastTranslateY, {
+          toValue: -8,
+          duration: 260,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      addedToastTranslateY.setValue(14);
+      setShowAddedToast(false);
+      router.push("/(tabs)/bag");
+    });
+  };
+
+  const handleToggleFavorite = () => {
+    toggleFavorite({
+      id: parsedProduct?.id,
+      title: productTitle,
+      category: productCategory,
+      description: productDescription,
+      price: productPrice,
+      image: productImage,
+    });
+  };
 
   // Gambar Sepatu (Carousel)
   const images = [productImage, productImage, productImage];
@@ -214,15 +303,36 @@ export default function ProductDetailScreen() {
 
       {/* 6. BOTTOM ACTIONS (Fixed) */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity style={styles.addToBagBtn}>
-          <Text style={styles.addToBagText}>Add to Bag</Text>
-        </TouchableOpacity>
+        <Animated.View style={{ transform: [{ scale: addBtnScale }] }}>
+          <TouchableOpacity style={styles.addToBagBtn} onPress={handleAddToBag}>
+            <Text style={styles.addToBagText}>Add to Bag</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
-        <TouchableOpacity style={styles.favoriteBtn}>
-          <Text style={styles.favoriteText}>Favorite</Text>
-          <Ionicons name="heart-outline" size={18} color="#000" />
+        <TouchableOpacity style={styles.favoriteBtn} onPress={handleToggleFavorite}>
+          <Text style={styles.favoriteText}>{favorited ? "Favorited" : "Favorite"}</Text>
+          <Ionicons
+            name={favorited ? "heart" : "heart-outline"}
+            size={18}
+            color={favorited ? "#111" : "#000"}
+          />
         </TouchableOpacity>
       </View>
+
+      {showAddedToast ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.addedToast,
+            {
+              opacity: addedToastOpacity,
+              transform: [{ translateY: addedToastTranslateY }],
+            },
+          ]}>
+          <Ionicons name="checkmark-circle" size={15} color="#fff" />
+          <Text style={styles.addedToastText}>Added to Bag</Text>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -456,6 +566,23 @@ const styles = StyleSheet.create({
   favoriteText: {
     color: "#000",
     fontSize: 16,
+    fontWeight: "600",
+  },
+  addedToast: {
+    position: "absolute",
+    bottom: 132,
+    alignSelf: "center",
+    backgroundColor: "#111",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  addedToastText: {
+    color: "#fff",
+    fontSize: 13,
     fontWeight: "600",
   },
 });
