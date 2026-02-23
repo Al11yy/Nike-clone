@@ -1,50 +1,117 @@
-# Welcome to your Expo app 👋
+# Nike Clone (Expo + React Native)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Nike-inspired mobile shopping app built with Expo Router.  
+Project includes product browsing, favorites, cart, and a UI checkout flow.
 
-## Get started
+## Features
+
+- Home feed with dynamic sneaker data from a local proxy API
+- Shop tab with category top navigation (`Men`, `Women`, `Kids`)
+- Product detail page with add-to-bag flow
+- Favorites tab with saved products
+- Bag tab with quantity control, order summary, and checkout UI
+- Bottom-tab navigation with bag item badge
+
+## Tech Stack
+
+- Expo SDK 54
+- React Native + React 19
+- Expo Router (file-based routing)
+- TypeScript
+- Express (`server/sneaks-proxy.js`) for Sneaks API proxy
+
+## Project Structure
+
+```text
+app/
+  (tabs)/
+    index.tsx       # Home
+    shop.tsx        # Shop page
+    bag.tsx         # Bag + checkout UI
+    favorites.tsx   # Favorites
+    profile.tsx     # Profile
+  detailproduct.tsx # Product details
+context/
+  cart-context.tsx
+  favorites-context.tsx
+server/
+  sneaks-proxy.js   # Local API proxy
+```
+
+## Requirements
+
+- Node.js 18+ (recommended: latest LTS)
+- npm
+- Expo Go app (Android/iOS) or emulator/simulator
+
+## Quick Start
 
 1. Install dependencies
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Create env file
 
-## Learn more
+```bash
+copy .env.example .env
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+3. Run local sneaker API proxy (terminal 1)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm run api
+```
 
-## Join the community
+4. Run Expo app (terminal 2)
 
-Join our community of developers creating universal apps.
+```bash
+npm start
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Environment Variables
+
+Defined in `.env`:
+
+```env
+EXPO_PUBLIC_SNEAKS_API_URL=http://localhost:4000
+```
+
+If testing on a physical phone, replace `localhost` with your laptop local IP:
+
+```env
+EXPO_PUBLIC_SNEAKS_API_URL=http://192.168.x.x:4000
+```
+
+## Available Scripts
+
+- `npm start` - start Expo dev server
+- `npm run android` - open Android target
+- `npm run ios` - open iOS simulator
+- `npm run web` - run web target
+- `npm run api` - run local Sneaks proxy API (`server/sneaks-proxy.js`)
+- `npm run lint` - run lint checks
+
+## API Endpoints (Local Proxy)
+
+Base URL: `http://localhost:4000`
+
+- `GET /health`
+- `GET /api/sneakers?q=Nike%20shoes&limit=12`
+
+## Notes
+
+- This project is for educational/demo purposes.
+- Checkout flow is UI-only (no real payment processing).
+- Product data is fetched through the local proxy from `sneaks-api`.
+
+## Troubleshooting
+
+- Products not loading:
+  - Make sure `npm run api` is running.
+  - Verify `EXPO_PUBLIC_SNEAKS_API_URL` points to the correct host.
+- Works on emulator but not on phone:
+  - Use your laptop IP in `.env` (not `localhost`).
+  - Ensure phone and laptop are on the same network.
+
