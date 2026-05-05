@@ -1,6 +1,5 @@
 import { useFavorites } from "@/context/favorites-context";
 import { Ionicons } from "@expo/vector-icons";
-import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -17,22 +16,16 @@ import {
   View,
 } from "react-native";
 
+// 1. KITA IMPORT AXIOS YANG UDAH DI-SETTING DARI FOLDER API
+import api from "../../api/axios";
+
 const { width } = Dimensions.get("window");
 
-function resolveSneaksApiBaseUrl() {
-  const envUrl = process.env.EXPO_PUBLIC_SNEAKS_API_URL;
-  if (envUrl) return envUrl;
-
-  const hostUri = Constants.expoConfig?.hostUri;
-  if (!hostUri) return "http://localhost:4000";
-
-  const host = hostUri.split(":")[0];
-  if (!host) return "http://localhost:4000";
-
-  return `http://${host}:4000`;
-}
-
-const SNEAKS_API_BASE_URL = resolveSneaksApiBaseUrl();
+// ==========================================
+// GANTI 192.168.X.X SAMA IP WIFI LAPTOP LU!
+// ==========================================
+const IP_LAPTOP = "192.168.0.114"; 
+const ASSET_URL = `http://${IP_LAPTOP}/Nike_Clone_Web_App/public/storage/`;
 
 type ProductItem = {
   id: string;
@@ -75,40 +68,39 @@ const SNEAKER_WEEK_DATA = [
     image:
       "https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/e6da41fa-1be4-4ce5-b89c-22be4f1f02d4/air-force-1-07-mens-shoes-jBrhbr.png",
   },
-  {
-    id: "3",
-    label: "Jordan Retro",
-    desc: "The legend continues with new colorways.",
-    image:
-      "https://www.footlocker.id/media/catalog/product/cache/f57d6f7ebc711fc328170f0ddc174b08/0/2/02-NIKE-F34KBNIK5-NIKDM0967010-Black.jpg",
-  },
 ];
 
-async function fetchNikeShoes() {
-  let response: Response;
+// ==========================================
+// 2. FUNGSI FETCH LARAVEL ADA DI SINI CUI
+// ==========================================
+async function fetchLaravelProducts() {
   try {
-    response = await fetch(
-      `${SNEAKS_API_BASE_URL}/api/sneakers?q=${encodeURIComponent("Nike shoes")}&limit=12`,
-    );
-  } catch {
-    throw new Error(
-      `Cannot reach Sneaks API at ${SNEAKS_API_BASE_URL}. Start 'npm run api' and use your laptop IP in EXPO_PUBLIC_SNEAKS_API_URL when testing on a phone.`,
-    );
+    // Nembak ke http://IP_LAPTOP/Nike_Clone_Web_App/public/api/products
+    const response = await api.get('/products');
+    
+    const mapped: ProductItem[] = response.data.data.map((item: any) => ({
+      id: item.id.toString(),
+      title: item.nama_barang,
+      category: "Sneakers", 
+      description: item.deskripsi,
+      price: item.harga.toString(), 
+      image: `${ASSET_URL}${item.gambar}`,
+    }));
+
+    if (!mapped.length) {
+      throw new Error("Katalog produk di Laravel masih kosong.");
+    }
+
+    return mapped;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(`Server Error: ${error.response.status}`);
+    } else if (error.request) {
+      throw new Error("Gagal nyambung ke Laravel. Cek IP Address lu!");
+    } else {
+      throw new Error(error.message);
+    }
   }
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(`Sneaks API request failed: ${response.status} ${message}`);
-  }
-
-  const data = (await response.json()) as { items?: ProductItem[] };
-  const mapped = (data.items ?? []).filter((item) => item.id);
-
-  if (!mapped.length) {
-    throw new Error("No Nike shoes found from Sneaks API.");
-  }
-
-  return mapped;
 }
 
 const Header = () => (
@@ -147,16 +139,23 @@ const Header = () => (
 const ProductCard = ({ item }: { item: ProductItem }) => {
   const router = useRouter();
   const { isFavorite, toggleFavorite } = useFavorites();
+  
+  // Format harga ke Rupiah
+  const formattedPrice = item.price 
+    ? `Rp ${parseInt(item.price).toLocaleString('id-ID')}` 
+    : "Harga tidak tersedia";
+
   const safeItem = {
     ...item,
     title: item.title ?? "Nike Shoes",
     category: item.category ?? "Sneakers",
-    description: item.description ?? "Product from Sneaks-API.",
-    price: item.price ?? "Price unavailable",
+    description: item.description ?? "Product from Laravel API.",
+    price: item.price,
     image:
       item.image ??
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1170&auto=format&fit=crop",
   };
+  
   const favorited = isFavorite(safeItem.id, safeItem.title);
 
   return (
@@ -181,7 +180,7 @@ const ProductCard = ({ item }: { item: ProductItem }) => {
                 title: safeItem.title,
                 category: safeItem.category,
                 description: safeItem.description,
-                price: safeItem.price,
+                price: formattedPrice,
                 image: safeItem.image,
               });
             }}>
@@ -198,7 +197,7 @@ const ProductCard = ({ item }: { item: ProductItem }) => {
             {safeItem.title}
           </Text>
           <Text style={styles.productCategory}>{safeItem.category}</Text>
-          <Text style={styles.productPrice}>{safeItem.price}</Text>
+          <Text style={styles.productPrice}>{formattedPrice}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -217,55 +216,6 @@ const EditorialBanner = ({ image, smallTag, title, btnText }: any) => (
     </View>
   </View>
 );
-
-const SneakerOfWeek = () => {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const handleScroll = (event: any) => {
-    const slideSize = event.nativeEvent.layoutMeasurement.width;
-    const index = event.nativeEvent.contentOffset.x / slideSize;
-    const roundIndex = Math.round(index);
-    setActiveIndex(roundIndex);
-  };
-
-  return (
-    <View>
-      <FlatList
-        data={SNEAKER_WEEK_DATA}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        renderItem={({ item }) => (
-          <View style={{ width: width - 40 }}>
-            <View style={styles.sotwContainer}>
-              <Image source={{ uri: item.image }} style={styles.sotwImage} />
-              <View style={styles.sotwContent}>
-                <Text style={styles.sotwLabel}>{item.label}</Text>
-                <Text style={styles.sotwDesc}>{item.desc}</Text>
-              </View>
-            </View>
-          </View>
-        )}
-      />
-      <View style={styles.paginationContainer}>
-        {SNEAKER_WEEK_DATA.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.paginationDot,
-              activeIndex === index
-                ? styles.paginationDotActive
-                : styles.paginationDotInactive,
-            ]}
-          />
-        ))}
-      </View>
-    </View>
-  );
-};
 
 const StoryCard = ({ item }: any) => (
   <View style={styles.storyCard}>
@@ -288,7 +238,8 @@ export default function NikeExactClone() {
     try {
       setLoading(true);
       setError(null);
-      const result = await fetchNikeShoes();
+      // Panggil fungsi API buatan kita
+      const result = await fetchLaravelProducts();
       setProducts(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown API error";
@@ -319,26 +270,26 @@ export default function NikeExactClone() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
       <StatusBar barStyle="dark-content" />
-
       <Header />
-
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.padding20}>
           <Text style={styles.greetingText}>Good Afternoon, Liyyy</Text>
         </View>
 
+        {/* UI KOTAK-KOTAK LOADING */}
         {loading && (
           <View style={styles.apiStateBox}>
             <ActivityIndicator size="small" color="#111" />
-            <Text style={styles.apiStateText}>Loading Nike shoes from Sneaks API...</Text>
+            <Text style={styles.apiStateText}>Menarik koleksi dari Server...</Text>
           </View>
         )}
 
+        {/* UI KOTAK-KOTAK ERROR */}
         {!loading && error && (
           <View style={styles.apiStateBox}>
             <Text style={styles.apiErrorText}>{error}</Text>
             <TouchableOpacity onPress={loadProducts} style={styles.retryBtn}>
-              <Text style={styles.retryBtnText}>Retry API</Text>
+              <Text style={styles.retryBtnText}>Coba Lagi</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -350,7 +301,7 @@ export default function NikeExactClone() {
                 <Text style={styles.sectionTitle}>Top Picks for You</Text>
                 <Text style={styles.viewAll}>View All</Text>
               </View>
-              <Text style={styles.sectionSub}>Live from Nike Store</Text>
+              <Text style={styles.sectionSub}>Live from Babaali Store</Text>
 
               <FlatList
                 horizontal
@@ -363,10 +314,6 @@ export default function NikeExactClone() {
             </View>
 
             <View style={styles.padding20}>
-              <SneakerOfWeek />
-            </View>
-
-            <View style={styles.padding20}>
               <Text style={styles.sectionTitle}>New From Nike</Text>
             </View>
 
@@ -375,13 +322,6 @@ export default function NikeExactClone() {
               smallTag="Breaking New Grounds"
               title={"NIKE YEAR OF THE\nHORSE COLLECTION"}
               btnText="Shop"
-            />
-
-            <EditorialBanner
-              image="data:image/jpeg;base64,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"
-              smallTag="Nike Kids"
-              title={"THE NEW ERA OF\nTEEN PERFORMANCE."}
-              btnText="Explore"
             />
 
             <View style={styles.sectionContainer}>
